@@ -1,0 +1,27 @@
+# .NET / C#
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.pdb
+
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+android/app/build/
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Runner/GeneratedPluginRegistrant.h
+ios/Runner/GeneratedPluginRegistrant.m
+ios/.generated/
+.pub-cache/
+pubspec.lock
+
+# IDEs
+.idea/
+.vscode/
+*.iml
