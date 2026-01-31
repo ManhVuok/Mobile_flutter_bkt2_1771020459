@@ -7,7 +7,7 @@ class AppConstants {
   // - Web/iOS/Other: localhost
   static String get baseUrl {
     if (kReleaseMode) {
-      return 'https://api.yourdomain.com'; // Replace with production URL
+      return 'https://pcm-bkt2.duckdns.org'; 
     }
     if (!kIsWeb && Platform.isAndroid) {
       return 'http://10.0.2.2:5099';

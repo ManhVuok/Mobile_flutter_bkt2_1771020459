@@ -11,7 +11,7 @@ public class PcmHub : Hub
 
     public async Task UpdateMatchScore(int matchId, int score1, int score2)
     {
-        await Clients.All.SendAsync("UpdateMatchScore", matchId, score1, score2);
+        await Clients.Group($"Match_{matchId}").SendAsync("UpdateMatchScore", matchId, score1, score2);
     }
     public async Task UpdateCalendar()
     {

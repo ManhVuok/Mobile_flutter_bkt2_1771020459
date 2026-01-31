@@ -18,6 +18,7 @@ public class Tournament
 
     public TournamentStatus Status { get; set; } = TournamentStatus.Open;
 
+    public string? Description { get; set; } // Mô tả giải đấu
     public string? Settings { get; set; } // JSON string
 
     public ICollection<TournamentParticipant> Participants { get; set; } = new List<TournamentParticipant>();

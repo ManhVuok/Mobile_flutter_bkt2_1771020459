@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add Identity
 builder.Services.AddIdentity<Member, IdentityRole>(options => {
@@ -44,7 +44,7 @@ builder.Services.AddAuthentication(options =>
 // Add Controllers
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
@@ -66,11 +66,14 @@ builder.Services.AddHostedService<PCM.Backend.Services.BookingCleanupService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline.
+// Enable Swagger in ALL environments (Dev & Prod) for testing
+app.UseSwagger();
+app.UseSwaggerUI();
+
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    // Dev specific settings
 }
 
 // app.UseHttpsRedirection(); // Disable in Dev to avoid SSL/CORS issues on Web

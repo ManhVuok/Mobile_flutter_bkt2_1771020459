@@ -38,7 +38,7 @@ public class BookingsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateBooking([FromBody] BookingRequestDto model)
+    public async Task<IActionResult> CreateBooking([FromBody] BookingRequestDto model, [FromQuery] bool isHold = false)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var user = await _userManager.FindByIdAsync(userId!);
@@ -50,7 +50,7 @@ public class BookingsController : ControllerBase
         DateTime startTime = model.Date.Date.AddHours(model.StartHour);
         DateTime endTime = startTime.AddHours(model.DurationHours);
 
-        // 1. Check Availability
+        // 1. Check Availability (Including Holding status)
         bool isBusy = await _context.Bookings.AnyAsync(b => 
             b.CourtId == model.CourtId && 
             b.Status != BookingStatus.Cancelled &&
@@ -58,24 +58,48 @@ public class BookingsController : ControllerBase
              (b.EndTime > startTime && b.EndTime <= endTime) ||
              (b.StartTime <= startTime && b.EndTime >= endTime)));
 
-        if (isBusy) return BadRequest("Khung giờ này đã có người đặt.");
+        if (isBusy) return BadRequest("Khung giờ này đã có người đặt hoặc đang giữ chỗ.");
 
-        // 2. Check Wallet
         decimal totalPrice = court.PricePerHour * model.DurationHours;
-        if (user.WalletBalance < totalPrice)
-            return BadRequest($"Số dư không đủ. Cần {totalPrice}, hiện có {user.WalletBalance}.");
+        
+        // 2. Validate user (even for hold, should have balance?) -> Requirement says just Hold.
+        // Let's allow Hold without balance check for now, or check minimal.
 
-        // 3. Process Logic
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
+            if (isHold)
+            {
+                 // Hold Logic: Create Booking with PendingPayment/Holding status
+                 var bookingHold = new Booking
+                 {
+                    CourtId = model.CourtId,
+                    MemberId = userId!,
+                    StartTime = startTime,
+                    EndTime = endTime,
+                    TotalPrice = totalPrice,
+                    Status = BookingStatus.PendingPayment, // Treated as Hold
+                    CreatedDate = DateTime.UtcNow, // Cleanup service will delete after 5m
+                    IsRecurring = false
+                 };
+                 _context.Bookings.Add(bookingHold);
+                 await _context.SaveChangesAsync();
+                 await transaction.CommitAsync();
+                 await _hubContext.Clients.All.SendAsync("UpdateCalendar");
+                 return Ok(new { Status = "Success", Message = "Đang giữ chỗ (5 phút). Vui lòng thanh toán ngay.", BookingId = bookingHold.Id });
+            }
+
+            // Normal Setup: Check Balance & Deduct
+            if (user.WalletBalance < totalPrice)
+                 return BadRequest($"Số dư không đủ. Cần {totalPrice}, hiện có {user.WalletBalance}.");
+
             // Trừ tiền
             user.WalletBalance -= totalPrice;
             user.TotalSpent += totalPrice;
 
             // Update Tier Logic
             if (user.TotalSpent >= 50000000 && user.Tier < MemberTier.Diamond) user.Tier = MemberTier.Diamond;
-            else if (user.TotalSpent >= 20000000 && user.Tier < MemberTier.Gold) user.Tier = MemberTier.Gold;
+            else if (user.TotalSpent >= 10000000 && user.Tier < MemberTier.Gold) user.Tier = MemberTier.Gold;
             else if (user.TotalSpent >= 5000000 && user.Tier < MemberTier.Silver) user.Tier = MemberTier.Silver;
 
             // Tạo Transaction Record
@@ -106,13 +130,10 @@ public class BookingsController : ControllerBase
             _context.Bookings.Add(booking);
             await _context.SaveChangesAsync();
 
-            // Link ngược lại (Optional, nếu DB có FK nullable)
             walletTx.RelatedId = booking.Id.ToString();
             await _context.SaveChangesAsync();
 
             await transaction.CommitAsync();
-            
-            // Real-time Update
             await _hubContext.Clients.All.SendAsync("UpdateCalendar");
 
             return Ok(new { Status = "Success", Message = "Đặt sân thành công!", BookingId = booking.Id });
@@ -179,21 +200,143 @@ public class BookingsController : ControllerBase
         }
     }
 
+    [HttpGet("my-history")]
+    public async Task<ActionResult<IEnumerable<Booking>>> GetMyHistory()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return await _context.Bookings
+            .Include(b => b.Court)
+            .Where(b => b.MemberId == userId)
+            .OrderByDescending(b => b.CreatedDate)
+            .ToListAsync();
+    }
+
     [HttpPost("recurring")]
-    [Authorize(Roles = "VIP,Admin")] // Or check Tier >= Gold
+    [Authorize(Roles = "VIP,Admin,Treasurer,Member")] // Allow Member with High Tier? For now VIP. Let's assume VIP role exists.
     public async Task<IActionResult> CreateRecurringBooking([FromBody] RecurringBookingRequestDto model)
     {
-         // Simplified Recurring: Book same time for next 4 weeks
-         // Implementation skipped for brevity in this specific turn but framework is:
-         // 1. Calculate dates. 
-         // 2. Check collision for ALL dates.
-         // 3. Calc Total Price.
-         // 4. Loop Create Bookings.
-         return BadRequest("Feature coming soon (Advanced VIP)");
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var user = await _userManager.FindByIdAsync(userId!);
+        if (user == null) return Unauthorized();
+
+        // Validate Tier? 
+        if (user.Tier < MemberTier.Gold && !User.IsInRole("Admin")) 
+             return BadRequest("Chỉ thành viên Gold/Diamond mới được đặt lịch định kỳ.");
+
+        var court = await _context.Courts.FindAsync(model.CourtId);
+        if (court == null) return NotFound("Sân không tồn tại.");
+
+        List<DateTime> targetDates = new List<DateTime>();
+        DateTime current = model.Date.Date;
+        
+        // Parse DaysOfWeek (e.g. "Tue,Thu")
+        // Mapping: Sunday=0, Monday=1...
+        var targetDays = new List<DayOfWeek>();
+        if (!string.IsNullOrEmpty(model.DaysOfWeek))
+        {
+            var parts = model.DaysOfWeek.Split(',');
+            foreach (var p in parts)
+            {
+                if (Enum.TryParse<DayOfWeek>(p.Trim(), true, out var dow)) targetDays.Add(dow);
+            }
+        }
+
+        // Generate Dates for N weeks
+        for (int i = 0; i < model.Weeks * 7; i++)
+        {
+            DateTime d = current.AddDays(i);
+            if (targetDays.Contains(d.DayOfWeek))
+            {
+                // Ensure StartTime on that day
+                targetDates.Add(d.AddHours(model.StartHour));
+            }
+        }
+
+        if (targetDates.Count == 0) return BadRequest("Không tìm thấy ngày nào phù hợp.");
+
+        decimal pricePerSlot = court.PricePerHour * model.DurationHours;
+        decimal totalPrice = pricePerSlot * targetDates.Count;
+
+        if (user.WalletBalance < totalPrice)
+            return BadRequest($"Số dư không đủ. Cần {totalPrice:N0}đ cho {targetDates.Count} buổi.");
+
+        // Transactional Process
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+             // 1. Check Collision for ALL slots
+             foreach (var start in targetDates)
+             {
+                 var end = start.AddHours(model.DurationHours);
+                 bool isBusy = await _context.Bookings.AnyAsync(b => 
+                    b.CourtId == model.CourtId && 
+                    b.Status != BookingStatus.Cancelled &&
+                    ((b.StartTime < end && b.StartTime >= start) || 
+                     (b.EndTime > start && b.EndTime <= end) ||
+                     (b.StartTime <= start && b.EndTime >= end)));
+                 
+                 if (isBusy) return BadRequest($"Trùng lịch vào ngày {start:dd/MM/yyyy HH:mm}. Vui lòng kiểm tra lại.");
+             }
+
+             // 2. Deduct Money
+             user.WalletBalance -= totalPrice;
+             user.TotalSpent += totalPrice;
+
+             // 3. Create Transaction
+             var walletTx = new WalletTransaction
+            {
+                MemberId = userId!,
+                Amount = -totalPrice,
+                Type = WalletTransactionType.Payment,
+                Status = TransactionStatus.Completed,
+                Description = $"Đặt lịch định kỳ {model.Weeks} tuần ({targetDates.Count} buổi) sận {court.Name}",
+                CreatedDate = DateTime.UtcNow
+            };
+            _context.WalletTransactions.Add(walletTx);
+            await _context.SaveChangesAsync();
+
+             // 4. Create Parent Booking (First one)
+             Booking? parentBooking = null;
+             
+             foreach(var start in targetDates)
+             {
+                 var booking = new Booking
+                 {
+                    CourtId = model.CourtId,
+                    MemberId = userId!,
+                    StartTime = start,
+                    EndTime = start.AddHours(model.DurationHours),
+                    TotalPrice = pricePerSlot,
+                    Status = BookingStatus.Confirmed,
+                    TransactionId = walletTx.Id,
+                    IsRecurring = true,
+                    RecurrenceRule = $"{model.Weeks} Weeks; {model.DaysOfWeek}",
+                    ParentBookingId = parentBooking?.Id 
+                 };
+                 _context.Bookings.Add(booking);
+                 await _context.SaveChangesAsync(); // Need ID for Parent
+                 
+                 if (parentBooking == null) parentBooking = booking; // Set First as Parent
+             }
+
+             walletTx.RelatedId = parentBooking!.Id.ToString();
+             await _context.SaveChangesAsync();
+
+             await transaction.CommitAsync();
+             await _hubContext.Clients.All.SendAsync("UpdateCalendar");
+
+             return Ok(new { Status = "Success", Message = $"Đã đặt thành công {targetDates.Count} buổi.", TotalPrice = totalPrice });
+        }
+        catch(Exception ex)
+        {
+            await transaction.RollbackAsync();
+            return StatusCode(500, "Lỗi: " + ex.Message);
+        }
     }
 }
 
 public class RecurringBookingRequestDto : BookingRequestDto
 {
     public int Weeks { get; set; } = 4;
+    public string? DaysOfWeek { get; set; } // e.g. "Monday,Wednesday,Friday"
 }

@@ -1,0 +1,10 @@
+# Ignore these files when building Docker image
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.db
+*.db-shm
+*.db-wal
+appsettings.Development.json

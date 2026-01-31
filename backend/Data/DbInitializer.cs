@@ -20,18 +20,18 @@ public static class DbInitializer
             }
         }
 
-        // Seed Admin // Pass: Admin@123
-        if (await userManager.FindByEmailAsync("admin@pcm.local") == null)
+        // Seed Admin // Pass: admin123
+        if (await userManager.FindByEmailAsync("admin@gmail.com") == null)
         {
             var admin = new Member
             {
-                UserName = "admin@pcm.local",
-                Email = "admin@pcm.local",
+                UserName = "admin@gmail.com",
+                Email = "admin@gmail.com",
                 FullName = "System Admin",
                 EmailConfirmed = true,
                 Tier = MemberTier.Diamond
             };
-            await userManager.CreateAsync(admin, "Admin@123");
+            await userManager.CreateAsync(admin, "admin123");
             await userManager.AddToRoleAsync(admin, "Admin");
         }
         
@@ -48,6 +48,21 @@ public static class DbInitializer
             };
             await userManager.CreateAsync(treasurer, "Admin@123");
             await userManager.AddToRoleAsync(treasurer, "Treasurer");
+        }
+
+        // Seed Referee // Pass: Admin@123
+        if (await userManager.FindByEmailAsync("referee@pcm.local") == null)
+        {
+            var referee = new Member
+            {
+                UserName = "referee@pcm.local",
+                Email = "referee@pcm.local",
+                FullName = "Head Referee",
+                EmailConfirmed = true,
+                Tier = MemberTier.Silver
+            };
+            await userManager.CreateAsync(referee, "Admin@123");
+            await userManager.AddToRoleAsync(referee, "Referee");
         }
 
         // Seed Members (20 members)
@@ -103,8 +118,8 @@ public static class DbInitializer
             // Ongoing/Upcoming
              var upcomingTournament = new Tournament
             {
-                Name = "Winter Cup 2026",
-                StartDate = DateTime.UtcNow.AddDays(10),
+                Name = "Winter Cup", // Exact name requested
+                StartDate = DateTime.UtcNow.AddSeconds(10), // Start very soon to be Open
                 EndDate = DateTime.UtcNow.AddDays(12),
                 Format = TournamentFormat.Knockout,
                 EntryFee = 700000,

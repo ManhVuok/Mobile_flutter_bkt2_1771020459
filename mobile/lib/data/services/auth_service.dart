@@ -14,10 +14,13 @@ class AuthService {
       });
 
       if (response.statusCode == 200) {
-        final token = response.data['token'];
-        final role = response.data['role'] ?? 'Member';
-        await _storage.write(key: 'jwt_token', value: token);
-        await _storage.write(key: 'user_role', value: role);
+        final data = response.data;
+        await _storage.write(key: 'jwt_token', value: data['token']);
+        await _storage.write(key: 'user_role', value: data['role'] ?? 'Member');
+        await _storage.write(key: 'user_name', value: data['fullName'] ?? 'Người dùng');
+        await _storage.write(key: 'user_email', value: email);
+        await _storage.write(key: 'user_id', value: data['userId'] ?? '');
+        await _storage.write(key: 'user_tier', value: data['tier'] ?? 'Standard');
         return null; // Success
       }
       return 'Login failed';
@@ -54,7 +57,7 @@ class AuthService {
   }
 
   Future<void> logout() async {
-    await _storage.delete(key: 'jwt_token');
+    await _storage.deleteAll();
   }
 
   Future<String?> getToken() async {

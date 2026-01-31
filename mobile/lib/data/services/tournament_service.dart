@@ -8,9 +8,13 @@ class TournamentService {
 
   Future<List<dynamic>> getTournaments() async {
     try {
+      print('Fetching tournaments from: ${AppConstants.apiUrl}/tournaments');
       final response = await _dio.get('${AppConstants.apiUrl}/tournaments');
+      print('Response status: ${response.statusCode}');
+      print('Response data: ${response.data}');
       return response.data as List<dynamic>;
     } catch (e) {
+      print('Error fetching tournaments: $e');
       return [];
     }
   }

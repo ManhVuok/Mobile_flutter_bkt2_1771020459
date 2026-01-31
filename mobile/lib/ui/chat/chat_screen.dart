@@ -38,10 +38,10 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     // Listen
-    _signalR.listenToMessage((sender, message) {
-      if(mounted) {
+    _signalR.messageStream.listen((data) {
+      if(mounted && data.length >= 2) {
         setState(() {
-          _messages.add({'sender': sender, 'message': message});
+          _messages.add({'sender': data[0], 'message': data[1]});
         });
       }
     });

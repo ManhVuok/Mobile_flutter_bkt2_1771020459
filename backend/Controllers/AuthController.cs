@@ -60,7 +60,9 @@ public class AuthController : ControllerBase
                 Expiration = token.ValidTo,
                 UserId = user.Id,
                 FullName = user.FullName,
+                Email = user.Email ?? "",
                 Role = userRoles.FirstOrDefault() ?? "Member",
+                Tier = user.Tier.ToString(),
                 WalletBalance = user.WalletBalance
             });
         }

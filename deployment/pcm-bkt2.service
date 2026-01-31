@@ -1,0 +1,17 @@
+[Unit]
+Description=PCM BKT2 API (Isolated)
+After=network.target
+
+[Service]
+WorkingDirectory=/var/www/pcm-bkt2
+ExecStart=/usr/bin/dotnet /var/www/pcm-bkt2/PCM.Backend.dll
+Restart=always
+RestartSec=10
+KillSignal=SIGINT
+SyslogIdentifier=pcm-bkt2
+User=root
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://localhost:5014
+
+[Install]
+WantedBy=multi-user.target

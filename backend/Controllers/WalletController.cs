@@ -70,7 +70,7 @@ public class WalletController : ControllerBase
         return Ok(transactions);
     }
     [HttpGet("balance")]
-    public async Task<ActionResult<decimal>> GetBalance()
+    public async Task<IActionResult> GetBalance()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return Unauthorized();
@@ -78,7 +78,11 @@ public class WalletController : ControllerBase
         var member = await _context.Users.FindAsync(userId);
         if (member == null) return NotFound();
 
-        return Ok(member.WalletBalance);
+        return Ok(new { 
+            balance = member.WalletBalance, 
+            totalSpent = member.TotalSpent, 
+            tier = member.Tier.ToString() 
+        });
     }
 
     [HttpPost("deposit")]
@@ -149,5 +153,57 @@ public class WalletController : ControllerBase
             QrUrl = qrUrl,
             Description = "Nap tien [UserCode]"
         });
+    }
+    [HttpGet("stats")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetRevenueStats()
+    {
+        var sixMonthsAgo = DateTime.UtcNow.AddMonths(-5);
+        // Ensure we group by date parts
+        var data = await _context.Bookings
+            .Where(b => b.Status != BookingStatus.Cancelled && b.StartTime >= sixMonthsAgo)
+            .ToListAsync(); // Fetch first to avoid complex Linq translation issues with DateTime on some providers
+
+        var stats = data
+            .GroupBy(b => new { b.StartTime.Year, b.StartTime.Month })
+            .Select(g => new { 
+                Year = g.Key.Year, 
+                Month = g.Key.Month, 
+                Revenue = g.Sum(b => b.TotalPrice) 
+            })
+            .OrderBy(x => x.Year).ThenBy(x => x.Month)
+            .ToList();
+            
+        return Ok(stats);
+    }
+
+    [HttpGet("export-report")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ExportRevenueReport()
+    {
+        // Get all completed bookings (Revenue)
+        var bookings = await _context.Bookings
+            .Include(b => b.Member)
+            .Include(b => b.Court)
+            .Where(b => b.Status != BookingStatus.Cancelled) 
+            .OrderByDescending(b => b.StartTime)
+            .ToListAsync();
+
+        var csv = new System.Text.StringBuilder();
+        csv.AppendLine("Ma Dat San,Khach Hang,San,Ngay,Gio Bat Dau,Thoi Luong,Tong Tien,Trang Thai");
+
+        foreach (var b in bookings)
+        {
+            var memberName = b.Member != null ? b.Member.FullName : "Unknown";
+            var courtName = b.Court != null ? b.Court.Name : "Unknown";
+            var status = b.Status.ToString();
+            var durationHours = (b.EndTime - b.StartTime).TotalHours;
+
+            csv.AppendLine($"{b.Id},{memberName},{courtName},{b.StartTime:dd/MM/yyyy},{b.StartTime:HH:mm},{durationHours}h,{b.TotalPrice},{status}");
+        }
+
+        // Add BOM for Excel to read UTF-8 correctly
+        var bytes = System.Text.Encoding.UTF8.GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(csv.ToString())).ToArray();
+        return File(bytes, "text/csv", $"BaoCaoDoanhThu_{DateTime.Now:yyyyMMdd}.csv");
     }
 }

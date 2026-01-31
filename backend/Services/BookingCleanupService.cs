@@ -42,22 +42,20 @@ public class BookingCleanupService : BackgroundService
                 }
 
                 // 2. Auto-Remind (24h before StartTime)
-                // Logic: Find confirmed bookings starting in 23h-24h range that haven't been reminded.
-                // For simplicity: Find bookings tomorrow, send noti if not sent. 
-                // Since we don't have "IsReminded" flag, we might send duplicates. 
-                // Enhanced: Check Notification table to see if Reminder exists for this booking? 
-                // Or just keep it simple: StartTime between Now+23h and Now+24h.
-                var from = DateTime.UtcNow.AddHours(23);
-                var to = DateTime.UtcNow.AddHours(24);
+                // Sending reminder 24h before. Check window: [Now + 23h55m, Now + 24h05m] to catch exact time if job runs every minute.
+                // Or: [Now, Now + 24h] but check if not reminded.
+                // Safe approach: Find bookings starting tomorrow (Date = Today + 1)
                 
+                DateTime tomorrowStart = DateTime.UtcNow.AddDays(1).Date;
+                DateTime tomorrowEnd = tomorrowStart.AddDays(1);
+
                 var upcomingBookings = await context.Bookings
                     .Include(b => b.Member)
-                    .Where(b => b.Status == BookingStatus.Confirmed && b.StartTime >= from && b.StartTime <= to)
+                    .Where(b => b.Status == BookingStatus.Confirmed && b.StartTime >= tomorrowStart && b.StartTime < tomorrowEnd)
                     .ToListAsync(stoppingToken);
 
                 foreach (var booking in upcomingBookings)
                 {
-                    // Check duplicate simple (Optional)
                     bool reminded = await context.Notifications.AnyAsync(n => n.RelatedId == booking.Id.ToString() && n.Type == "Reminder");
                     if (!reminded)
                     {

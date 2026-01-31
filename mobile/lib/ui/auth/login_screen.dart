@@ -19,66 +19,64 @@ class _LoginScreenState extends State<LoginScreen> {
   final LocalAuthentication _localAuth = LocalAuthentication();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   bool _isLoading = false;
-  bool _canCheckBiometrics = false;
+  bool _obscurePassword = true;
 
-  @override
-  void initState() {
-    super.initState();
-    _checkBiometrics();
-  }
-
-  Future<void> _checkBiometrics() async {
-    bool canCheck = false;
-    try {
-      canCheck = await _localAuth.canCheckBiometrics && await _localAuth.isDeviceSupported();
-    } catch (e) {
-      // ignore
-    }
-    if (mounted) setState(() => _canCheckBiometrics = canCheck);
-    
-    // Auto-check if token exists? Maybe optional.
-    // Let's just enable the button if token exists.
-  }
+  // Premium Color Scheme
+  static const Color primaryColor = Color(0xFF667EEA);
+  static const Color secondaryColor = Color(0xFF764BA2);
 
   Future<void> _authenticate() async {
     try {
       final token = await _storage.read(key: 'jwt_token');
       if (token == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng đăng nhập bằng mật khẩu trước để kích hoạt.')));
+        _showSnackBar('Vui lòng đăng nhập bằng mật khẩu trước', Colors.orange);
         return;
       }
 
       final bool didAuthenticate = await _localAuth.authenticate(
-        localizedReason: 'Vui lòng xác thực để đăng nhập',
-        options: const AuthenticationOptions(biometricOnly: false), // Allow passcode fallback
+        localizedReason: 'Xác thực để đăng nhập',
+        options: const AuthenticationOptions(biometricOnly: false),
       );
 
       if (didAuthenticate && mounted) {
-         Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
       }
     } catch (e) {
-       // ignore
+      // ignore
     }
   }
 
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
   void _login() async {
+    if (_emailController.text.trim().isEmpty || _passwordController.text.isEmpty) {
+      _showSnackBar('Vui lòng nhập email và mật khẩu', Colors.orange);
+      return;
+    }
+
     setState(() => _isLoading = true);
     final error = await _authService.login(
-      _emailController.text,
+      _emailController.text.trim(),
       _passwordController.text,
     );
     setState(() => _isLoading = false);
 
     if (error == null) {
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
     } else {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error), backgroundColor: Colors.red),
-      );
+      _showSnackBar(error, Colors.red);
     }
   }
 
@@ -86,98 +84,189 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF1A237E), Color(0xFF0D47A1)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            colors: [Color(0xFF667EEA), Color(0xFF764BA2)], // Premium Purple
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
-        child: Center(
+        child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.sports_tennis, size: 80, color: Colors.white),
-                const SizedBox(height: 16),
+                const SizedBox(height: 50),
+
+                // Logo
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white38, width: 2),
+                  ),
+                  child: const Icon(Icons.sports_tennis, size: 50, color: Colors.white),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Title
                 const Text(
-                  'VỢT THỦ PHỐ NÚI',
+                  'PICKLEBALL',
                   style: TextStyle(
                     fontSize: 28,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w800,
                     color: Colors.white,
-                    letterSpacing: 1.5,
+                    letterSpacing: 3,
                   ),
                 ),
-                const SizedBox(height: 40),
-                Card(
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(32.0),
-                    child: Column(
-                      children: [
-                        TextField(
-                          controller: _emailController,
-                          decoration: InputDecoration(
-                            labelText: 'Email',
-                            prefixIcon: const Icon(Icons.email),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        TextField(
-                          controller: _passwordController,
-                          obscureText: true,
-                          decoration: InputDecoration(
-                            labelText: 'Mật khẩu',
-                            prefixIcon: const Icon(Icons.lock),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: _isLoading
-                              ? const Center(child: CircularProgressIndicator())
-                              : ElevatedButton(
-                                  onPressed: _login,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF1A237E),
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                  child: const Text('ĐĂNG NHẬP', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                ),
-                        ),
+                const SizedBox(height: 4),
+                Text(
+                  'CLUB MANAGER',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.7),
+                    letterSpacing: 5,
+                  ),
+                ),
 
-                        if (_canCheckBiometrics) ...[
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: OutlinedButton.icon(
-                              onPressed: _authenticate,
-                              icon: const Icon(Icons.fingerprint),
-                              label: const Text('Đăng nhập bằng vân tay / FaceID'),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 20),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                            );
-                          },
-                          child: const Text('Chưa có tài khoản? Đăng ký ngay'),
+                const SizedBox(height: 50),
+
+                // Login Form Card
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Đăng Nhập',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E3A5F),
                         ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Email Field
+                      TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          hintText: 'admin@pcm.local',
+                          prefixIcon: Icon(Icons.email_outlined, color: primaryColor),
+                          filled: true,
+                          fillColor: const Color(0xFFF0F9FF),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: primaryColor, width: 2),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Password Field
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
+                          labelText: 'Mật khẩu',
+                          hintText: '••••••••',
+                          prefixIcon: Icon(Icons.lock_outline, color: primaryColor),
+                          suffixIcon: IconButton(
+                            icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
+                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFFF0F9FF),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: primaryColor, width: 2),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Login Button
+                      SizedBox(
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _login,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Text('ĐĂNG NHẬP', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Biometric Login
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(color: Colors.white30),
+                  ),
+                  child: InkWell(
+                    onTap: _authenticate,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.fingerprint, color: Colors.white, size: 28),
+                        const SizedBox(width: 10),
+                        const Text('Đăng nhập bằng vân tay', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
                       ],
                     ),
                   ),
                 ),
+
+                const SizedBox(height: 20),
+
+                // Register Link
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Chưa có tài khoản? ', style: TextStyle(color: Colors.white.withOpacity(0.7))),
+                    GestureDetector(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
+                      child: const Text('Đăng ký', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 30),
               ],
             ),
           ),

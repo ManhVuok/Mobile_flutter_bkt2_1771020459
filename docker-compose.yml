@@ -1,0 +1,35 @@
+# ============================================
+# Docker Compose cho PCM (Vợt Thủ Phố Núi)
+# ============================================
+# Chạy lệnh: docker compose up -d
+# Xem logs: docker compose logs -f
+# Dừng: docker compose down
+
+services:
+  # ===== Backend API =====
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pcm_api
+    restart: always
+    ports:
+      - "5000:8080" # Truy cập qua http://IP:5000
+    volumes:
+      # Mount thư mục data để lưu SQLite database (không mất khi restart)
+      - ./data:/app/data
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/app.db
+      - Jwt__Key=YourSuperSecretKeyForProductionPleaseChangeThis123456789!
+      - Jwt__Issuer=https://your-domain.com
+      - Jwt__Audience=https://your-domain.com
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/api/courts" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# Volumes để persist data
+volumes:
+  pcm_data:
