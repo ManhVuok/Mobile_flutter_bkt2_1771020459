@@ -92,10 +92,10 @@ public static class DbInitializer
         if (!context.Courts.Any())
         {
             context.Courts.AddRange(
-                new Court { Name = "Sân 1 (Trong nhà)", PricePerHour = 150000 },
-                new Court { Name = "Sân 2 (Trong nhà)", PricePerHour = 150000 },
-                new Court { Name = "Sân 3 (Ngoài trời)", PricePerHour = 100000 },
-                new Court { Name = "Sân 4 (Ngoài trời)", PricePerHour = 100000 }
+                new Court { Name = "Sân 1 (Trong nhà)", PricePerHour = 150000, ImageUrl = "https://images.unsplash.com/photo-1626224583764-847890e045b5?q=80&w=600&auto=format&fit=crop" },
+                new Court { Name = "Sân 2 (Trong nhà)", PricePerHour = 150000, ImageUrl = "https://images.unsplash.com/photo-1626224583764-847890e045b5?q=80&w=600&auto=format&fit=crop" },
+                new Court { Name = "Sân 3 (Ngoài trời)", PricePerHour = 100000, ImageUrl = "https://images.unsplash.com/photo-1599586120429-48285b6a8a81?q=80&w=600&auto=format&fit=crop" },
+                new Court { Name = "Sân 4 (Ngoài trời)", PricePerHour = 100000, ImageUrl = "https://images.unsplash.com/photo-1591117207239-0889dfe3c316?q=80&w=600&auto=format&fit=crop" }
             );
             await context.SaveChangesAsync();
         }
@@ -112,7 +112,8 @@ public static class DbInitializer
                 Format = TournamentFormat.RoundRobin,
                 EntryFee = 500000,
                 PrizePool = 10000000,
-                Status = TournamentStatus.Finished
+                Status = TournamentStatus.Finished,
+                ImageUrl = "https://plus.unsplash.com/premium_photo-1676634832558-6654a134e920?q=80&w=1000&auto=format&fit=crop"
             };
             
             // Ongoing/Upcoming
@@ -124,7 +125,8 @@ public static class DbInitializer
                 Format = TournamentFormat.Knockout,
                 EntryFee = 700000,
                 PrizePool = 20000000,
-                Status = TournamentStatus.Open
+                Status = TournamentStatus.Open,
+                ImageUrl = "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?q=80&w=1000&auto=format&fit=crop"
             };
 
             context.Tournaments.AddRange(pastTournament, upcomingTournament);

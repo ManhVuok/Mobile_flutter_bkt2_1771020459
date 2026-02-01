@@ -48,4 +48,35 @@ class TournamentService {
       return e.toString();
     }
   }
+
+  Future<String?> createTournament(Map<String, dynamic> data) async {
+    try {
+      final token = await _storage.read(key: 'jwt_token');
+      _dio.options.headers['Authorization'] = 'Bearer $token';
+      
+      final response = await _dio.post('${AppConstants.apiUrl}/tournaments', data: data);
+      
+      if (response.statusCode == 201 || response.statusCode == 200) return null;
+      return "Create failed";
+    } on DioException catch (e) {
+       if (e.response != null) {
+        return e.response?.data?.toString() ?? e.message;
+      }
+      return e.message;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<List<dynamic>> getMyHistory() async {
+    try {
+      final token = await _storage.read(key: 'jwt_token');
+      _dio.options.headers['Authorization'] = 'Bearer $token';
+
+      final response = await _dio.get('${AppConstants.apiUrl}/tournaments/my-history');
+      return response.data as List<dynamic>;
+    } catch (e) {
+      return [];
+    }
+  }
 }

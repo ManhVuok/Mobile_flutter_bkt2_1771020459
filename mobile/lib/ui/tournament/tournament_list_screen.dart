@@ -95,6 +95,15 @@ class _TournamentListScreenState extends State<TournamentListScreen> {
     }
   }
 
+  int _parseStatus(dynamic status) {
+    if (status is int) return status;
+    if (status == 'Open') return 0;
+    if (status == 'Registering') return 1;
+    if (status == 'Ongoing') return 2;
+    if (status == 'Finished') return 3;
+    return 0;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -135,7 +144,7 @@ class _TournamentListScreenState extends State<TournamentListScreen> {
                     itemCount: _tournaments.length,
                 itemBuilder: (context, index) {
                   final t = _tournaments[index];
-                  final status = t['status'] ?? 0;
+                  final status = _parseStatus(t['status']);
                   final canJoin = status == 0 || status == 1;
 
                   return Container(
@@ -148,17 +157,24 @@ class _TournamentListScreenState extends State<TournamentListScreen> {
                     child: Column(
                       children: [
                         // Header
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: status == 3
-                                  ? [Colors.grey.shade400, Colors.grey.shade600]
-                                  : [primaryColor, secondaryColor],
+                          Container(
+                            width: double.infinity,
+                            constraints: const BoxConstraints(minHeight: 120),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: status == 3 ? Colors.grey : primaryColor,
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                              image: t['imageUrl'] != null ? DecorationImage(
+                                image: NetworkImage(t['imageUrl']),
+                                fit: BoxFit.cover,
+                                colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.5), BlendMode.darken)
+                              ) : null,
+                              gradient: t['imageUrl'] == null ? LinearGradient(
+                                colors: status == 3
+                                    ? [Colors.grey.shade400, Colors.grey.shade600]
+                                    : [primaryColor, secondaryColor],
+                              ) : null,
                             ),
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                          ),
                           child: Row(
                             children: [
                               const Icon(Icons.emoji_events, color: Colors.white, size: 24),

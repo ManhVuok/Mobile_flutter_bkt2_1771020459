@@ -28,6 +28,22 @@ public class TournamentsController : ControllerBase
         return await _context.Tournaments.OrderByDescending(t => t.StartDate).ToListAsync();
     }
 
+    [HttpGet("my-history")]
+    public async Task<ActionResult<IEnumerable<Tournament>>> GetMyTournaments()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId == null) return Unauthorized();
+
+        // Join Tournament and TournamentParticipants
+        var tournaments = await _context.Tournaments
+            .Include(t => t.Participants)
+            .Where(t => t.Participants.Any(p => p.MemberId == userId))
+            .OrderByDescending(t => t.StartDate)
+            .ToListAsync();
+            
+        return Ok(tournaments);
+    }
+
     // Endpoint để seed dữ liệu mẫu (chỉ dùng cho dev/testing)
     [HttpPost("seed")]
     public async Task<IActionResult> SeedTournaments()

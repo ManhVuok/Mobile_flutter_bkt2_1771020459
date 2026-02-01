@@ -62,6 +62,12 @@ class _NewsListScreenState extends State<NewsListScreen> {
             itemCount: _newsList.length,
             itemBuilder: (context, index) {
               final news = _newsList[index];
+              final imageUrl = news['imageUrl'] ?? news['ImageUrl'] ?? 'https://picsum.photos/800/400?news';
+              final title = news['title'] ?? news['Title'] ?? 'Tin tức';
+              final content = news['content'] ?? news['Content'] ?? '';
+              final dateStr = news['createdDate'] ?? news['CreatedDate'] ?? news['publishDate'];
+              final date = dateStr != null ? DateTime.parse(dateStr) : DateTime.now();
+
               return Container(
                 margin: const EdgeInsets.only(bottom: 24),
                 decoration: BoxDecoration(
@@ -75,8 +81,9 @@ class _NewsListScreenState extends State<NewsListScreen> {
                     ClipRRect(
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                       child: Image.network(
-                        news['imageUrl'] ?? 'https://picsum.photos/800/400?news',
+                        imageUrl,
                         height: 180, width: double.infinity, fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => Container(height: 180, color: Colors.grey.shade200, child: const Center(child: Icon(Icons.broken_image, color: Colors.grey))),
                       ),
                     ),
                     Padding(
@@ -92,13 +99,13 @@ class _NewsListScreenState extends State<NewsListScreen> {
                                 child: const Text('SỰ KIỆN', style: TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold)),
                               ),
                               const Spacer(),
-                              Text(DateFormat('dd MMM, yyyy').format(DateTime.parse(news['publishDate'])), style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+                              Text(DateFormat('dd MMM, yyyy').format(date), style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
                             ],
                           ),
                           const SizedBox(height: 12),
-                          Text(news['title'] ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF263238))),
+                          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF263238))),
                           const SizedBox(height: 8),
-                          Text(news['content'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey.shade600, height: 1.5)),
+                          Text(content, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey.shade600, height: 1.5)),
                           const SizedBox(height: 16),
                           TextButton(
                             onPressed: () {
@@ -116,11 +123,11 @@ class _NewsListScreenState extends State<NewsListScreen> {
                                       children: [
                                         Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
                                         const SizedBox(height: 24),
-                                        ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.network(news['imageUrl'] ?? '', height: 200, width: double.infinity, fit: BoxFit.cover)),
+                                        ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.network(imageUrl, height: 200, width: double.infinity, fit: BoxFit.cover)),
                                         const SizedBox(height: 24),
-                                        Text(news['title'], style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                                        Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                                         const SizedBox(height: 16),
-                                        Text(news['content'], style: TextStyle(fontSize: 16, height: 1.6, color: Colors.grey.shade800)),
+                                        Text(content, style: TextStyle(fontSize: 16, height: 1.6, color: Colors.grey.shade800)),
                                       ],
                                     ),
                                   ),

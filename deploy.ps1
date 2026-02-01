@@ -3,7 +3,7 @@
 
 $VPS_IP = "103.77.172.159"
 $VPS_USER = "root"
-$VPS_PASS = "01685032123Hz@" 
+$VPS_PASS = "Nhom142022hZ@" 
 
 # 1. Publish Backend
 Write-Host "1. Building and Publishing Backend..." -ForegroundColor Green

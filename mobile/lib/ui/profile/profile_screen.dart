@@ -3,7 +3,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile/data/services/auth_service.dart';
 import 'package:mobile/ui/auth/login_screen.dart';
 import 'package:mobile/ui/members/members_list_screen.dart';
+import 'package:mobile/ui/members/members_list_screen.dart';
 import 'package:mobile/data/services/cache_service.dart';
+import 'package:mobile/ui/booking/my_bookings_screen.dart';
+import 'package:mobile/ui/tournament/my_tournaments_screen.dart';
+import 'package:mobile/ui/news/news_list_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -170,8 +174,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildMenuItem(Icons.people_outline, 'Danh sách Hội viên', () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const MembersListScreen()));
             }),
-            _buildMenuItem(Icons.history, 'Lịch sử đặt sân', () {}),
-            _buildMenuItem(Icons.emoji_events_outlined, 'Giải đấu đã tham gia', () {}),
+            _buildMenuItem(Icons.history, 'Lịch sử đặt sân', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyBookingsScreen()))),
+            _buildMenuItem(Icons.newspaper, 'Tin tức & Sự kiện', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NewsListScreen()))),
+            _buildMenuItem(Icons.emoji_events_outlined, 'Giải đấu của tôi', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyTournamentsScreen()))),
             _buildMenuItem(Icons.settings_outlined, 'Cài đặt', () {}),
             _buildMenuItem(Icons.help_outline, 'Trợ giúp', () {}),
             _buildMenuItem(Icons.logout, 'Đăng xuất', _logout, isDestructive: true),

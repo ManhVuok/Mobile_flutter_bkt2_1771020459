@@ -23,4 +23,6 @@ public class Tournament
 
     public ICollection<TournamentParticipant> Participants { get; set; } = new List<TournamentParticipant>();
     public ICollection<Match> Matches { get; set; } = new List<Match>();
+    
+    public string? ImageUrl { get; set; }
 }

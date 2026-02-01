@@ -63,4 +63,19 @@ class AuthService {
   Future<String?> getToken() async {
     return await _storage.read(key: 'jwt_token');
   }
+
+  Future<String> checkConnection() async {
+    try {
+      // Try to fetch a public endpoint or just root
+      final response = await _dio.get('${AppConstants.apiUrl}/tournaments'); 
+      return 'OK: ${response.statusCode}';
+    } on DioException catch (e) {
+       if (e.response != null) {
+        return 'Server Error: ${e.response?.statusCode}';
+      }
+      return 'Network Error: ${e.message}';
+    } catch (e) {
+      return 'Error: $e';
+    }
+  }
 }

@@ -189,7 +189,16 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen> {
   }
 
   Widget _buildMatchCard(dynamic m) {
-    final isFinished = m['status'] == 2;
+    // Helper to parse status
+    int parseStatus(dynamic s) {
+        if (s is int) return s;
+        if (s == 'Finished') return 2;
+        if (s == 'InProgress') return 1;
+        return 0;
+    }
+    
+    final status = parseStatus(m['status']);
+    final isFinished = status == 2;
     final player1 = m['team1_Player1']?['fullName'] ?? 'TBD';
     final player2 = m['team2_Player1']?['fullName'] ?? 'TBD';
     final score1 = m['score1'] ?? 0;

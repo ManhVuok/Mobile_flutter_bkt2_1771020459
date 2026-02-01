@@ -14,7 +14,7 @@ services:
     container_name: pcm_api
     restart: always
     ports:
-      - "5000:8080" # Truy cập qua http://IP:5000
+      - "5020:8080" # Truy cập qua http://IP:5020
     volumes:
       # Mount thư mục data để lưu SQLite database (không mất khi restart)
       - ./data:/app/data

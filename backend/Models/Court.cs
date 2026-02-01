@@ -11,4 +11,6 @@ public class Court
 
     [Column(TypeName = "decimal(18,2)")]
     public decimal PricePerHour { get; set; }
+
+    public string? ImageUrl { get; set; }
 }

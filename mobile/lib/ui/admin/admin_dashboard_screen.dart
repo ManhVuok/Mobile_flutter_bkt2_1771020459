@@ -3,6 +3,7 @@ import 'package:mobile/data/services/wallet_service.dart';
 import 'package:mobile/ui/admin/manage_bookings_screen.dart';
 import 'package:mobile/ui/admin/manage_deposits_screen.dart';
 import 'package:mobile/ui/tournament/tournament_list_screen.dart';
+import 'package:mobile/ui/admin/create_tournament_screen.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 
@@ -111,7 +112,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     label: const Text('Xếp Lịch'),
                     style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF667EEA), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 12)),
                 )
-              ]
+                ]
             ),
             const SizedBox(height: 16),
             Container(
@@ -213,6 +214,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             _buildActionTile(context, 'Phê Duyệt Nạp Tiền', 'Có 12 yêu cầu đang chờ', Icons.account_balance_wallet, Colors.indigo, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManageDepositsScreen()))),
             _buildActionTile(context, 'Quản Lý Đặt Sân', 'Xem và hủy lịch đặt sân', Icons.edit_calendar, Colors.deepOrange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManageBookingsScreen()))),
             _buildActionTile(context, 'Quản Lý Giải Đấu', 'Tạo và chỉnh sửa giải đấu', Icons.emoji_events, Colors.amber.shade700, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TournamentListScreen()))),
+            _buildActionTile(context, 'Tạo Giải Đấu Mới', 'Tổ chức giải đấu mới', Icons.add_circle, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateTournamentScreen()))),
             _buildActionTile(context, 'Báo Cáo Doanh Thu', 'Xuất file Excel báo cáo tháng', Icons.summarize, Colors.teal, () async {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đang tạo báo cáo...')));
                   final success = await WalletService().exportRevenueReport();

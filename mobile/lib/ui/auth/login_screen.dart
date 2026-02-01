@@ -80,6 +80,24 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _checkConnection() async {
+    setState(() => _isLoading = true);
+    final result = await _authService.checkConnection();
+    setState(() => _isLoading = false);
+    
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Trạng thái kết nối'),
+        content: Text(result),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đóng'))
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -251,6 +269,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
+
+                const SizedBox(height: 20),
+                
+                // Diagnostic Button
+                TextButton.icon(
+                  onPressed: _checkConnection, 
+                  icon: const Icon(Icons.wifi_find, color: Colors.white70), 
+                  label: const Text('Kiểm tra kết nối', style: TextStyle(color: Colors.white70)),
+                ),
+
+                const SizedBox(height: 10),
 
                 const SizedBox(height: 20),
 
